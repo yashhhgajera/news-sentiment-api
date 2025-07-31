@@ -1,6 +1,7 @@
 package com.newsanalyzer.api.controllers;
 
 import com.newsanalyzer.api.models.NewsArticle;
+import com.newsanalyzer.api.services.ExternalNewsService;
 import com.newsanalyzer.api.services.NewsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,9 @@ public class NewsController {
     
     @Autowired
     private NewsService newsService;
+
+    @Autowired
+    private ExternalNewsService externalNewsService;
     
     // GET /api/news?country=us&sentiment=positive
     @GetMapping
@@ -39,5 +43,11 @@ public class NewsController {
     @GetMapping("/test")
     public String test() {
         return "News API is working! 🚀";
+    }
+
+    // Add this to NewsController.java
+    @GetMapping("/external-test")
+    public List<NewsArticle> testExternalApi() {
+        return externalNewsService.fetchNewsByCountry("us");
     }
 }

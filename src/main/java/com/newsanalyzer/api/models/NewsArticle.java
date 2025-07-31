@@ -1,8 +1,13 @@
 package com.newsanalyzer.api.models;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
-// models/NewsArticle.java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class NewsArticle {
     private String title;
     private String description;
@@ -10,6 +15,5 @@ public class NewsArticle {
     private String country;
     private String sentiment; // "POSITIVE", "NEGATIVE", "NEUTRAL"
     private LocalDateTime publishedAt;
-    
-    // Constructor, getters, setters
+    private String source;
 }

@@ -3,6 +3,8 @@ package com.newsanalyzer.api.controllers;
 import com.newsanalyzer.api.models.NewsArticle;
 import com.newsanalyzer.api.services.ExternalNewsService;
 import com.newsanalyzer.api.services.NewsService;
+import com.newsanalyzer.api.services.ScheduledNewsService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,5 +51,25 @@ public class NewsController {
     @GetMapping("/external-test")
     public List<NewsArticle> testExternalApi() {
         return externalNewsService.fetchNewsByCountry("us");
+    }
+
+    // Add these to NewsController.java
+    @Autowired
+    private ScheduledNewsService scheduledNewsService;
+
+    @GetMapping("/cached")
+    public List<NewsArticle> getCachedNews(@RequestParam(defaultValue = "us") String country) {
+        return scheduledNewsService.getCachedNews(country);
+    }
+
+    @GetMapping("/last-updated")
+    public String getLastUpdated() {
+        return "Last updated: " + scheduledNewsService.getLastUpdated();
+    }
+
+    @GetMapping("/force-refresh")
+    public String forceRefresh() {
+        scheduledNewsService.fetchNewsForAllCountries();
+        return "News refresh triggered!";
     }
 }

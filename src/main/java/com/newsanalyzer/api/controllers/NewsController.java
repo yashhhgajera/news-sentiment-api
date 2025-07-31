@@ -9,7 +9,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/news")
-@CrossOrigin(origins = "http://localhost:4200") // For Angular frontend
 public class NewsController {
     
     @Autowired

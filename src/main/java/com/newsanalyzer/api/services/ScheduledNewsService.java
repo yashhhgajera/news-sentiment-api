@@ -26,28 +26,36 @@ public class ScheduledNewsService {
     
     private LocalDateTime lastUpdated = LocalDateTime.now();
     
-    // Run every 15 minutes (900,000 milliseconds)
+    @Autowired
+    private NewsService newsService; // Add this
+
+    // Update the fetchNewsForAllCountries method
     @Scheduled(fixedRate = 900000) 
     public void fetchNewsForAllCountries() {
         System.out.println("🔄 Starting scheduled news fetch at: " + LocalDateTime.now());
+        
+        // Clean up old articles first
+        newsService.cleanupOldArticles();
         
         for (String country : supportedCountries) {
             try {
                 // Fetch news from external API
                 List<NewsArticle> articles = externalNewsService.fetchNewsByCountry(country);
                 
-                // Apply sentiment analysis to each article
+                // Apply sentiment analysis
                 List<NewsArticle> processedArticles = articles.stream()
                         .map(this::processSentiment)
                         .filter(article -> isRecentArticle(article))
                         .toList();
                 
-                // Store in cache
-                newsCache.put(country, new CopyOnWriteArrayList<>(processedArticles));
+                // Save to database instead of cache
+                List<NewsArticle> savedArticles = newsService.saveArticles(processedArticles);
                 
-                System.out.println("✅ Fetched " + processedArticles.size() + " articles for " + country.toUpperCase());
+                // Update cache with database data
+                newsCache.put(country, new CopyOnWriteArrayList<>(savedArticles));
                 
-                // Small delay between countries to be nice to the API
+                System.out.println("✅ Saved " + savedArticles.size() + " new articles for " + country.toUpperCase());
+                
                 Thread.sleep(1000);
                 
             } catch (Exception e) {

@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.newsanalyzer.api.services.SentimentAnalysisService.SentimentResult;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

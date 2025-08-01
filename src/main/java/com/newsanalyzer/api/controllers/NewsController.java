@@ -4,6 +4,7 @@ import com.newsanalyzer.api.models.NewsArticle;
 import com.newsanalyzer.api.services.ExternalNewsService;
 import com.newsanalyzer.api.services.NewsService;
 import com.newsanalyzer.api.services.ScheduledNewsService;
+import com.newsanalyzer.api.services.SentimentAnalysisService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,9 @@ public class NewsController {
 
     @Autowired
     private ExternalNewsService externalNewsService;
+
+    @Autowired
+    private SentimentAnalysisService sentimentAnalysisService;
     
     // GET /api/news?country=us&sentiment=positive
     @GetMapping
@@ -72,4 +76,9 @@ public class NewsController {
         scheduledNewsService.fetchNewsForAllCountries();
         return "News refresh triggered!";
     }
+
+    @GetMapping("/test-sentiment")
+    public Object testSentiment(@RequestParam String text) {
+        return sentimentAnalysisService.analyzeSentiment(text);
+}
 }

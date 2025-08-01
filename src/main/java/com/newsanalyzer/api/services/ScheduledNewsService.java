@@ -1,6 +1,8 @@
 package com.newsanalyzer.api.services;
 
 import com.newsanalyzer.api.models.NewsArticle;
+import com.newsanalyzer.api.services.SentimentAnalysisService.SentimentResult;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -77,8 +79,8 @@ public class ScheduledNewsService {
     // Helper method to process sentiment
     private NewsArticle processSentiment(NewsArticle article) {
         try {
-            String sentiment = sentimentAnalysisService.analyzeSentiment(article.getTitle());
-            article.setSentiment(sentiment);
+            SentimentResult sentiment = sentimentAnalysisService.analyzeSentiment(article.getTitle());
+            article.setSentiment(sentiment.toString());
         } catch (Exception e) {
             System.err.println("Error processing sentiment: " + e.getMessage());
             article.setSentiment("NEUTRAL"); // Fallback

@@ -6,20 +6,18 @@ import lombok.AllArgsConstructor;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-import com.newsanalyzer.api.services.SentimentAnalysisService.SentimentResult;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity  // JPA annotation - this class maps to a database table
-@Table(name = "news_articles")  // Table name in database
+@Entity
+@Table(name = "news_articles")
 public class NewsArticle {
     
-    @Id  // Primary key
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Auto-increment ID
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "title", length = 500)  // Column configuration
+    @Column(name = "title", length = 500)
     private String title;
     
     @Column(name = "description", length = 1000)
@@ -34,6 +32,13 @@ public class NewsArticle {
     @Column(name = "sentiment", length = 20)
     private String sentiment;
     
+    // NEW: Enhanced sentiment fields
+    @Column(name = "sentiment_score")
+    private Double sentimentScore; // Range: -1.0 to +1.0
+    
+    @Column(name = "sentiment_confidence")
+    private Double sentimentConfidence; // Range: 0.0 to 1.0
+    
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
     
@@ -43,9 +48,15 @@ public class NewsArticle {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
-    // JPA callback to set createdAt automatically
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+    
+    // Convenience method to set all sentiment data at once
+    public void setSentimentData(String sentiment, Double score, Double confidence) {
+        this.sentiment = sentiment;
+        this.sentimentScore = score;
+        this.sentimentConfidence = confidence;
     }
 }

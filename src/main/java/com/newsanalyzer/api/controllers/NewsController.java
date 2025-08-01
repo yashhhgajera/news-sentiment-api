@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/news")
@@ -80,5 +81,33 @@ public class NewsController {
     @GetMapping("/test-sentiment")
     public Object testSentiment(@RequestParam String text) {
         return sentimentAnalysisService.analyzeSentiment(text);
-}
+    }
+
+    // Add these endpoints to NewsController.java
+
+    // Get high-confidence sentiment articles
+    @GetMapping("/high-confidence")
+    public List<NewsArticle> getHighConfidenceNews(
+            @RequestParam(defaultValue = "us") String country,
+            @RequestParam String sentiment) {
+        return newsService.getHighConfidenceNews(country, sentiment);
+    }
+
+    // Get detailed sentiment statistics
+    @GetMapping("/detailed-stats")
+    public Map<String, Object> getDetailedStats(@RequestParam(defaultValue = "us") String country) {
+        return newsService.getDetailedSentimentStats(country);
+    }
+
+    // Get processing statistics from scheduler
+    @GetMapping("/processing-stats")
+    public Map<String, Integer> getProcessingStats() {
+        return scheduledNewsService.getProcessingStats();
+    }
+
+    // Test enhanced sentiment on custom text
+    @GetMapping("/analyze-text")
+    public SentimentAnalysisService.SentimentResult analyzeCustomText(@RequestParam String text) {
+        return sentimentAnalysisService.analyzeSentiment(text);
+    }
 }

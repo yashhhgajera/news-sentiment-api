@@ -1,6 +1,7 @@
 package com.newsanalyzer.api.controllers;
 
 import com.newsanalyzer.api.models.NewsArticle;
+import com.newsanalyzer.api.services.AsyncSentimentService;
 import com.newsanalyzer.api.services.ExternalNewsService;
 import com.newsanalyzer.api.services.NewsService;
 import com.newsanalyzer.api.services.ScheduledNewsService;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/news")
@@ -24,6 +26,9 @@ public class NewsController {
 
     @Autowired
     private SentimentAnalysisService sentimentAnalysisService;
+
+    @Autowired
+    private AsyncSentimentService asyncSentimentService;
     
     // GET /api/news?country=us&sentiment=positive
     @GetMapping
@@ -110,4 +115,25 @@ public class NewsController {
     public SentimentAnalysisService.SentimentResult analyzeCustomText(@RequestParam String text) {
         return sentimentAnalysisService.analyzeSentiment(text);
     }
+
+    // Trigger async reprocessing for a specific country
+    @PostMapping("/reprocess-sentiment")
+    public CompletableFuture<String> reprocessSentiment(@RequestParam String country) {
+        return asyncSentimentService.reprocessCountrySentiment(country)
+                .thenApply(result -> "Sentiment reprocessing started for " + country.toUpperCase())
+                .exceptionally(throwable -> "Error starting reprocessing: " + throwable.getMessage());
+    }
+
+    // Get async processing status
+    @GetMapping("/async-status")
+    public Map<String, Integer> getAsyncStatus() {
+        return asyncSentimentService.getProcessingStatus();
+    }
+
+    // Analyze text asynchronously
+    @GetMapping("/analyze-async")
+    public CompletableFuture<SentimentAnalysisService.SentimentResult> analyzeAsync(@RequestParam String text) {
+        return asyncSentimentService.analyzeSingleAsync(text);
+    }
+    
 }

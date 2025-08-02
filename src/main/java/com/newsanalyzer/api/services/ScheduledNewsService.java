@@ -23,6 +23,9 @@ public class ScheduledNewsService {
     
     @Autowired
     private NewsService newsService;
+
+    @Autowired
+    private AsyncSentimentService asyncSentimentService;
     
     private final ConcurrentHashMap<String, List<NewsArticle>> newsCache = new ConcurrentHashMap<>();
     private final List<String> supportedCountries = Arrays.asList("us", "gb", "ca", "au", "in", "de", "fr");
@@ -72,28 +75,39 @@ public class ScheduledNewsService {
                     .filter(this::isRecentArticle)
                     .collect(Collectors.toList());
             
-            // Batch process sentiment analysis for better performance
-            List<NewsArticle> processedArticles = processSentimentBatch(recentArticles);
+            // Save articles to database immediately (without sentiment)
+            // This ensures we don't lose data if sentiment processing fails
+            List<NewsArticle> savedArticles = saveArticlesWithoutSentiment(recentArticles);
             
-            // Save to database (will filter duplicates)
-            List<NewsArticle> savedArticles = newsService.saveArticles(processedArticles);
+            // Update cache immediately with basic data
+            updateCacheForCountry(country);
             
-            // Update cache with all articles for this country (from database)
-            List<NewsArticle> allCountryArticles = newsService.getRecentNews(country);
-            newsCache.put(country, new CopyOnWriteArrayList<>(allCountryArticles));
+            // Process sentiment asynchronously (non-blocking)
+            if (!savedArticles.isEmpty()) {
+                asyncSentimentService.processArticlesSentimentAsync(savedArticles, country)
+                    .thenRun(() -> {
+                        // Update cache again after sentiment processing is complete
+                        updateCacheForCountry(country);
+                        System.out.println("🧠 Sentiment processing completed for " + country.toUpperCase());
+                    })
+                    .exceptionally(throwable -> {
+                        System.err.println("❌ Async sentiment processing failed for " + country + ": " + throwable.getMessage());
+                        return null;
+                    });
+            }
+            
+            long processingTime = System.currentTimeMillis() - startTime;
             
             // Update processing stats
-            long processingTime = System.currentTimeMillis() - startTime;
             processingStats.put(country + "_fetched", articles.size());
             processingStats.put(country + "_saved", savedArticles.size());
             processingStats.put(country + "_time", (int) processingTime);
             
-            System.out.println("✅ " + country.toUpperCase() + ": " + 
-                             "Fetched=" + articles.size() + 
-                             ", Saved=" + savedArticles.size() + 
-                             ", Time=" + processingTime + "ms");
+            System.out.println("⚡ " + country.toUpperCase() + ": " + 
+                            "Fetched=" + articles.size() + 
+                            ", Saved=" + savedArticles.size() + 
+                            ", Time=" + processingTime + "ms (sentiment processing async)");
             
-            // Small delay between countries
             Thread.sleep(1000);
             
         } catch (Exception e) {
@@ -101,7 +115,28 @@ public class ScheduledNewsService {
             e.printStackTrace();
         }
     }
-    
+
+    // Add these helper methods:
+    private List<NewsArticle> saveArticlesWithoutSentiment(List<NewsArticle> articles) {
+        // Set default sentiment values for immediate saving
+        articles.forEach(article -> {
+            if (article.getSentiment() == null) {
+                article.setSentimentData("PROCESSING", 0.0, 0.0);
+            }
+        });
+        
+        return newsService.saveArticles(articles);
+    }
+
+    private void updateCacheForCountry(String country) {
+        try {
+            List<NewsArticle> allCountryArticles = newsService.getRecentNews(country);
+            newsCache.put(country, new CopyOnWriteArrayList<>(allCountryArticles));
+        } catch (Exception e) {
+            System.err.println("Error updating cache for " + country + ": " + e.getMessage());
+        }
+    }
+
     private List<NewsArticle> processSentimentBatch(List<NewsArticle> articles) {
         try {
             // Extract titles for batch sentiment analysis

@@ -112,4 +112,9 @@ public class NewsService {
         
         return stats;
     }
+
+    // Save single article to database
+public NewsArticle saveArticle(NewsArticle article) {
+    return newsRepository.save(article);
+}
 }

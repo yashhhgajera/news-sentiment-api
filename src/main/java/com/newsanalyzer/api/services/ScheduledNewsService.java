@@ -5,6 +5,8 @@ import com.newsanalyzer.api.services.SentimentAnalysisService.SentimentResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -14,6 +16,11 @@ import java.util.stream.Collectors;
 
 @Service
 public class ScheduledNewsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ScheduledNewsService.class);
+
+    @Autowired
+private MockNewsService mockNewsService;
     
     @Autowired
     private ExternalNewsService externalNewsService;
@@ -33,24 +40,57 @@ public class ScheduledNewsService {
     private LocalDateTime lastUpdated = LocalDateTime.now();
     private final Map<String, Integer> processingStats = new ConcurrentHashMap<>();
     
-    @Scheduled(fixedRate = 900000) // Every 15 minutes
-    public void fetchNewsForAllCountries() {
-        System.out.println("🔄 Starting scheduled news fetch at: " + LocalDateTime.now());
+@Scheduled(fixedRate = 900000) // Every 15 minutes
+public void fetchNewsForAllCountries() {
+    System.out.println("🔄 Starting scheduled news fetch with MOCK DATA at: " + LocalDateTime.now());
+    
+    // Clean up old articles first
+    newsService.cleanupOldArticles();
+    
+    // Reset processing stats
+    processingStats.clear();
+    
+    // NEW: Use mock data instead of real API
+    try {
+        List<NewsArticle> mockArticles = mockNewsService.getMockNewsForAllCountries();
+        System.out.println("📰 Generated " + mockArticles.size() + " mock articles");
         
-        // Clean up old articles first
-        newsService.cleanupOldArticles();
-        
-        // Reset processing stats
-        processingStats.clear();
-        
-        for (String country : supportedCountries) {
-            processCountryNews(country);
+        // Process each mock article (same as before)
+        for (NewsArticle article : mockArticles) {
+            processIndividualArticle(article);
         }
         
-        lastUpdated = LocalDateTime.now();
-        printProcessingStats();
-        System.out.println("🎉 News fetch completed at: " + lastUpdated);
+    } catch (Exception e) {
+        logger.error("Error fetching mock news", e);
+        System.out.println("❌ Error generating mock news: " + e.getMessage());
     }
+    
+    lastUpdated = LocalDateTime.now();
+    printProcessingStats();
+    System.out.println("🎉 Mock news fetch completed at: " + lastUpdated);
+}
+
+
+/**
+ * Process a single article (replaces the country-based processing)
+ */
+private void processIndividualArticle(NewsArticle article) {
+    try {
+        String country = article.getCountry();
+        
+        // Save to database
+        NewsArticle savedArticle = newsService.saveArticle(article);
+        
+        // Update stats
+        processingStats.merge(country + "_fetched", 1, Integer::sum);
+        
+        System.out.println("✅ Processed: " + article.getTitle().substring(0, Math.min(50, article.getTitle().length())) + "...");
+        
+    } catch (Exception e) {
+        logger.error("Error processing article: {}", article.getTitle(), e);
+        System.out.println("❌ Failed to process: " + article.getTitle());
+    }
+}
     
     @Scheduled(initialDelay = 5000, fixedRate = Long.MAX_VALUE)
     public void initialNewsLoad() {
